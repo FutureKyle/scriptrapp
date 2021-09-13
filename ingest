@@ -1,0 +1,43 @@
+// import the "document" module to save data in the persistant store
+var document = require("document");
+
+/* retrieve the buffer from the body of the request
+ * in this example we assume it is send as a JSON object: 
+ * {
+ * 	"buffer": 
+ *	[
+ *   	{"time": <timestamp>, "x":<x_val>, "y":<y_val>, "z":<z_val>}, 
+ *      {"time": <timestamp>, "x":<x_val>, "y":<y_val>, "z":<z_val>}, 
+ *       ...
+ *  ]
+ * }  
+ */
+
+if(typeof(request.body) != "undefined")
+{
+	var buffer = request.body.buffer;
+
+    // assuming that items in the buffer are ordered from oldest to newest,
+    // save each item of the buffer into the data store in the cloud
+    for (var i = 0; i < buffer.length; i++) {
+        document.save(buffer[i])
+    }
+}
+
+
+// prepare a query to read the last 50 records in the data store where the value of the field "time" is not null
+var req = {
+    "query": "time is not null",
+    "fields": "time, x, y, z, temp"
+};
+
+// execute the above query and store the returned documents (records) into a variable
+var queryOutput = document.query(req);
+var last50Readings = queryOutput.result.documents;
+            
+// publish the 50 records to the channel so they can be consumed by the linechart in the dashboard
+publish("responseChannel", {"id": "myLineChart", "result": last50Readings});
+
+//return "Added "+buffer.length+" items."
+return last50Readings;
+
